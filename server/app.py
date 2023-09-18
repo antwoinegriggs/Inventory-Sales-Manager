@@ -2,7 +2,8 @@ from flask import Flask, request, make_response, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
 
-from models import db
+from models import db, ProductInventory, Customer, SalesOrder
+# from models import customer_inventory_order
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -13,5 +14,7 @@ CORS(app)
 migrate = Migrate(app, db)
 
 db.init_app(app)
+
+
 if __name__ == "__main__":
     app.run(port=5555)

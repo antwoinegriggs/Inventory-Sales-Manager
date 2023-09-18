@@ -4,37 +4,18 @@ from sqlalchemy_serializer import SerializerMixin
 db = SQLAlchemy()
 
 
-class Product(db.Model, SerializerMixin):
-    __tablename__ = 'products'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    sku_number = db.Column(db.Integer)
-
-    # One-to-Many ProductInventory
-    inventory_items = db.relationship("ProductInventory")
-
-
 class ProductInventory(db.Model, SerializerMixin):
     __tablename__ = 'inventory'
 
     id = db.Column(db.Integer, primary_key=True)
-
-    @property
-    def product_name(self):
-        return self.product.name
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'))
-
-    @property
-    def product_number(self):
-        return self.product.sku_number
-
+    product_name = db.Column(db.String(20))
+    product_number = db.Column(db.Integer)
     product_quantity = db.Column(db.Integer)
     product_price = db.Column(db.Integer)
 
     # Many-to-Many Customer
     inventory_customer = db.relationship(
-        'Customer', secondary='customer_inventory_order', back_populates='customer_inventories')
+        'Customer', secondary='customer_inventory_orders', overlaps='customer_inventory')
 
     # One-to-Many SalesOrder
     inventory_orders = db.relationship('SalesOrder')
@@ -46,9 +27,11 @@ class Customer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255))
 
-    # (Many-to-Many) ProductInventory
+    # Many-to-Many ProductInventory
     customer_inventory = db.relationship(
-        'ProductInventory', secondary='customer_inventory_order', back_populates='customers_inventories')
+        'ProductInventory', secondary='customer_inventory_orders', overlaps='customer_inventory')
+    # One-to-Many SaleOrders
+    customer_orders = db.relationship('SalesOrder')
 
 
 class SalesOrder(db.Model):
@@ -73,16 +56,15 @@ class SalesOrder(db.Model):
 
     # Many-to-Many Custoemr
     customer_order = db.relationship(
-        'Customer', secondary='customer_inventory_order', back_populates='customer_orders')
+        'Customer', secondary='customer_inventory_orders', overlaps='customer_inventory, inventory_customer')
 
 
 # Join Table Customer, Inventory, Order
 customer_inventory_order = db.Table(
-    'customer_product_inventory',
-    db.Column('customer_id', db.Integer, db.ForeignKey(
-        'customers.id'), primary_key=True),
+    'customer_inventory_orders',
+    db.Column("id", db.Integer, primary_key=True),
+    db.Column('customer_id', db.Integer, db.ForeignKey('customers.id')),
     db.Column('product_inventory_id', db.Integer,
-              db.ForeignKey('inventory.id'), primary_key=True),
-    db.Column('sales_order_id', db.Integer, db.ForeignKey(
-        'sales_orders.id'), primary_key=True)
+              db.ForeignKey('inventory.id')),
+    db.Column('sales_order_id', db.Integer, db.ForeignKey('sales_orders.id'))
 )
